@@ -6,6 +6,7 @@
 #include "Game.hpp"
 #include "Track.hpp"
 #include "Camera.hpp"
+#include "lua.hpp"
 
 /* Background template for fullscreen effects */
 class FullscreenBackground : public Background
@@ -15,6 +16,7 @@ public:
 	{
 		fullscreenMesh = MeshGenerators::Quad(g_gl, Vector2(-1.0f), Vector2(2.0f));
 		this->foreground = foreground;
+		CheckedLoad(m_lua = g_application->LoadScript("gameplay"));		
 		return true;
 	}
 	void UpdateRenderState(float deltaTime)
@@ -37,6 +39,7 @@ public:
 	Texture backgroundTexture;
 	Texture frameBufferTexture;
 	MaterialParameterSet fullscreenMaterialParams;
+	lua_State* m_lua = nullptr;
 	float clearTransition = 0.0f;
 	float offsyncTimer = 0.0f;
 	bool foreground;
@@ -73,18 +76,21 @@ class TestBackground : public FullscreenBackground
 		}
 		else
 		{
+			String bgName = GetBackgroundName(m_lua);
 			matPath = game->GetBeatmap()->GetMapSettings().backgroundPath;
-			String texPath = "textures/bg_texture.png";
+			String texPath = "textures/" + bgName + ".png";
+
+
 			if (matPath.length() > 3 && matPath.substr(matPath.length() - 3, 3) == ".fs")
 			{
 				matPath = Path::Normalize(game->GetMapRootPath() + Path::sep + matPath);
-				texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + "bg_texture.png");
+				texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + bgName + ".png");
 				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath, true));
 			}
 			else
 			{
 				matPath = "skins/" + skin + "/shaders/background.fs";
-				CheckedLoad(backgroundTexture = g_application->LoadTexture("bg_texture.png"));
+				CheckedLoad(backgroundTexture = g_application->LoadTexture(bgName + ".png"));
 			}
 		}
 
@@ -167,6 +173,17 @@ class TestBackground : public FullscreenBackground
 		return ret;
 	}
 
+	String GetBackgroundName(lua_State* m_lua)
+	{
+		int getBgNameExists = lua_getglobal(m_lua, "get_bg_name");
+		if (getBgNameExists == 0)
+		{
+			return "bg_texture";
+		}
+
+		lua_call(m_lua, 0, 1);
+		return lua_tostring(m_lua, -1);
+	}
 };
 
 

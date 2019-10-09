@@ -961,3 +961,7 @@ function draw_users(detaTime)
 
     gfx.Restore()
 end
+
+function get_bg_name()
+    return "bg_texture2"
+end
