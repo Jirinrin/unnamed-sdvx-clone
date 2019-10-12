@@ -61,11 +61,10 @@ class TestBackground : public FullscreenBackground
 		{
 			frameBufferTexture = TextureRes::CreateFromFrameBuffer(g_gl, g_resolution);
 			matPath = game->GetBeatmap()->GetMapSettings().foregroundPath;
-			String texPath = "textures/fg_texture.png";
 			if (matPath.length() > 3 && matPath.substr(matPath.length() - 3, 3) == ".fs")
 			{
 				matPath = Path::Normalize(game->GetMapRootPath() + Path::sep + matPath);
-				texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + "fg_texture.png");
+				String texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + "fg_texture.png");
 				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath, true));
 			}
 			else
@@ -76,20 +75,18 @@ class TestBackground : public FullscreenBackground
 		}
 		else
 		{
-			String bgPath = GetBackgroundPath(m_lua);
 			matPath = game->GetBeatmap()->GetMapSettings().backgroundPath;
-			String texPath = "textures/" + bgPath;
-
 			if (matPath.length() > 3 && matPath.substr(matPath.length() - 3, 3) == ".fs")
 			{
 				matPath = Path::Normalize(game->GetMapRootPath() + Path::sep + matPath);
-				texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + bgPath);
+				String texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + "bg_texture.png");
 				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath, true));
 			}
 			else
 			{
 				matPath = "skins/" + skin + "/shaders/background.fs";
-				CheckedLoad(backgroundTexture = g_application->LoadTexture(bgPath));
+				String texPath = GetBackgroundPath(m_lua);
+				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath));
 			}
 		}
 
