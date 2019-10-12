@@ -54,6 +54,3 @@ docs/build
 # Logs
 *.tlog
 *.log
-
-# Extra packages
-third_party/*
