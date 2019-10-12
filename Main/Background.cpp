@@ -76,21 +76,20 @@ class TestBackground : public FullscreenBackground
 		}
 		else
 		{
-			String bgName = GetBackgroundName(m_lua);
+			String bgPath = GetBackgroundPath(m_lua);
 			matPath = game->GetBeatmap()->GetMapSettings().backgroundPath;
-			String texPath = "textures/" + bgName + ".png";
-
+			String texPath = "textures/" + bgPath;
 
 			if (matPath.length() > 3 && matPath.substr(matPath.length() - 3, 3) == ".fs")
 			{
 				matPath = Path::Normalize(game->GetMapRootPath() + Path::sep + matPath);
-				texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + bgName + ".png");
+				texPath = Path::Normalize(game->GetMapRootPath() + Path::sep + bgPath);
 				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath, true));
 			}
 			else
 			{
 				matPath = "skins/" + skin + "/shaders/background.fs";
-				CheckedLoad(backgroundTexture = g_application->LoadTexture(bgName + ".png"));
+				CheckedLoad(backgroundTexture = g_application->LoadTexture(bgPath));
 			}
 		}
 
@@ -173,16 +172,23 @@ class TestBackground : public FullscreenBackground
 		return ret;
 	}
 
-	String GetBackgroundName(lua_State* m_lua)
+	String GetBackgroundPath(lua_State* m_lua)
 	{
-		int getBgNameExists = lua_getglobal(m_lua, "get_bg_name");
-		if (getBgNameExists == 0)
+		lua_getglobal(m_lua, "get_bg_file");
+		if (lua_isfunction(m_lua, -1))
 		{
-			return "bg_texture";
+			if (lua_pcall(m_lua, 0, 1, 0) != 0) {
+				Logf("Lua error on get_bg_file: %s", Logger::Error, lua_tostring(m_lua, -1));
+				g_gameWindow->ShowMessageBox("Lua Error get_bg_file", lua_tostring(m_lua, -1), 0);
+			}
+			else {
+				String bg = lua_tostring(m_lua, -1);
+				lua_pop(m_lua, 1);
+				return bg;
+			}
 		}
-
-		lua_call(m_lua, 0, 1);
-		return lua_tostring(m_lua, -1);
+		lua_settop(m_lua, 0);
+		return "bg_texture.png";
 	}
 };
 
