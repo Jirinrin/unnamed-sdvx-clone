@@ -70,7 +70,8 @@ class TestBackground : public FullscreenBackground
 			else
 			{
 				matPath = "skins/" + skin + "/shaders/foreground.fs";
-				CheckedLoad(backgroundTexture = g_application->LoadTexture("fg_texture.png"));
+				String texPath = GetTexturePath(m_lua, false);
+				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath));
 			}
 		}
 		else
@@ -85,7 +86,7 @@ class TestBackground : public FullscreenBackground
 			else
 			{
 				matPath = "skins/" + skin + "/shaders/background.fs";
-				String texPath = GetBackgroundPath(m_lua);
+				String texPath = GetTexturePath(m_lua, false);
 				CheckedLoad(backgroundTexture = g_application->LoadTexture(texPath));
 			}
 		}
@@ -169,14 +170,15 @@ class TestBackground : public FullscreenBackground
 		return ret;
 	}
 
-	String GetBackgroundPath(lua_State* m_lua)
+	String GetTexturePath(lua_State* m_lua, bool foreground)
 	{
-		lua_getglobal(m_lua, "get_bg_file");
+		char* textureGetCommand = foreground ? "get_fg_file" : "get_bg_file";
+		lua_getglobal(m_lua, textureGetCommand);
 		if (lua_isfunction(m_lua, -1))
 		{
 			if (lua_pcall(m_lua, 0, 1, 0) != 0) {
-				Logf("Lua error on get_bg_file: %s", Logger::Error, lua_tostring(m_lua, -1));
-				g_gameWindow->ShowMessageBox("Lua Error get_bg_file", lua_tostring(m_lua, -1), 0);
+				Logf("Lua error on %s: %s", Logger::Error, textureGetCommand, lua_tostring(m_lua, -1));
+				g_gameWindow->ShowMessageBox("Lua Error on " + String(textureGetCommand), lua_tostring(m_lua, -1), 0);
 			}
 			else {
 				String bg = lua_tostring(m_lua, -1);
@@ -185,7 +187,7 @@ class TestBackground : public FullscreenBackground
 			}
 		}
 		lua_settop(m_lua, 0);
-		return "bg_texture.png";
+		return foreground ? "fg_texture.png" : "bg_texture.png";
 	}
 };
 
