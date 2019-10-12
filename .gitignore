@@ -50,3 +50,10 @@ Makefile
 
 # Document build files
 docs/build
+
+# Logs
+*.tlog
+*.log
+
+# Extra packages
+third_party/*
