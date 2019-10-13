@@ -153,6 +153,7 @@ private:
 	Ref<ParticleEmitter> m_holdEmitters[6];
 	GameFlags m_flags;
 	bool m_manualExit = false;
+	bool m_showCover = true;
 
 	float m_shakeAmount = 3;
 	float m_shakeDuration = 0.083;
@@ -368,7 +369,11 @@ public:
 		if (!m_lua)
 			return false;
 
-
+		m_track->suddenCutoff = g_gameConfig.GetFloat(GameConfigKeys::SuddenCutoff);
+		m_track->suddenFadewindow = g_gameConfig.GetFloat(GameConfigKeys::SuddenFade);
+		m_track->hiddenCutoff = g_gameConfig.GetFloat(GameConfigKeys::HiddenCutoff);
+		m_track->hiddenFadewindow = g_gameConfig.GetFloat(GameConfigKeys::HiddenFade);
+		m_showCover = g_gameConfig.GetBool(GameConfigKeys::ShowCover);
 
 		auto pushStringToTable = [&](const char* name, String data)
 		{
@@ -380,6 +385,12 @@ public:
 		{
 			lua_pushstring(m_lua, name);
 			lua_pushinteger(m_lua, data);
+			lua_settable(m_lua, -3);
+		};
+		auto pushFloatToTable = [&](const char* name, float data)
+		{
+			lua_pushstring(m_lua, name);
+			lua_pushnumber(m_lua, data);
 			lua_settable(m_lua, -3);
 		};
 
@@ -434,6 +445,12 @@ public:
 			lua_pushstring(m_lua, "autoplay");
 			lua_pushboolean(m_lua, m_scoring.autoplay);
 			lua_settable(m_lua, -3);
+
+			//set hidden/sudden
+			pushFloatToTable("hiddenFade", m_track->hiddenFadewindow);
+			pushFloatToTable("hiddenCutoff", m_track->hiddenCutoff);
+			pushFloatToTable("suddenFade", m_track->suddenFadewindow);
+			pushFloatToTable("suddenCutoff", m_track->suddenCutoff);
 
 			lua_setglobal(m_lua, "gameplay");
 		}
@@ -614,6 +631,50 @@ public:
 
 		if(!m_paused)
 			TickGameplay(deltaTime);
+
+
+		// Update hispeed or hidden range
+		if (g_input.GetButton(Input::Button::BT_S))
+		{
+			if (g_input.GetButton(Input::Button::BT_1))
+			{
+				float change = g_input.GetInputLaserDir(0) / 10.0f;
+				m_track->hiddenCutoff = Math::Clamp(m_track->hiddenCutoff + change, 0.f, 1.f);
+
+				change = g_input.GetInputLaserDir(1) / 10.0f;
+				m_track->suddenCutoff = Math::Clamp(m_track->suddenCutoff + change, 0.f, 1.f);
+
+				g_gameConfig.Set(GameConfigKeys::HiddenCutoff, m_track->hiddenCutoff);
+				g_gameConfig.Set(GameConfigKeys::SuddenCutoff, m_track->suddenCutoff);
+			}
+			else if (g_input.GetButton(Input::Button::BT_2))
+			{
+				float change = g_input.GetInputLaserDir(0) / 30.0f;
+				m_track->hiddenFadewindow = Math::Clamp(m_track->hiddenFadewindow + change, 0.f, 1.f);
+
+				change = g_input.GetInputLaserDir(1) / 30.0f;
+				m_track->suddenFadewindow = Math::Clamp(m_track->suddenFadewindow + change, 0.f, 1.f);
+
+				g_gameConfig.Set(GameConfigKeys::HiddenFade, m_track->hiddenFadewindow);
+				g_gameConfig.Set(GameConfigKeys::SuddenFade, m_track->suddenFadewindow);
+			}
+			else
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					float change = g_input.GetInputLaserDir(i) / 3.0f;
+					m_hispeed += change;
+					m_hispeed = Math::Clamp(m_hispeed, 0.1f, 16.f);
+					if ((m_speedMod != SpeedMods::XMod) && change != 0.0f)
+					{
+						g_gameConfig.Set(GameConfigKeys::ModSpeed, m_hispeed * (float)m_currentTiming->GetBPM());
+						m_modSpeed = m_hispeed * (float)m_currentTiming->GetBPM();
+						m_playback.cModSpeed = m_modSpeed;
+					}
+				}
+			}
+		}
+
 	}
 	virtual void Render(float deltaTime) override
 	{
@@ -684,6 +745,8 @@ public:
 			if(m_hiddenObjects.find(object) == m_hiddenObjects.end())
 				m_track->DrawObjectState(renderQueue, m_playback, object, m_scoring.IsObjectHeld(object));
 		}
+		if(m_showCover)
+			m_track->DrawTrackCover(renderQueue);
 
 		// Use new camera for scoring overlay
 		//	this is because otherwise some of the scoring elements would get clipped to
@@ -1066,29 +1129,12 @@ public:
 		m_currentTiming = &m_playback.GetCurrentTimingPoint();
 
 
-		// Update hispeed
-		if (g_input.GetButton(Input::Button::BT_S))
-		{
-			for (int i = 0; i < 2; i++)
-			{
-				float change = g_input.GetInputLaserDir(i) / 3.0f;
-				m_hispeed += change;
-				m_hispeed = Math::Clamp(m_hispeed, 0.1f, 16.f);
-				if ((m_speedMod != SpeedMods::XMod) && change != 0.0f)
-				{
-					g_gameConfig.Set(GameConfigKeys::ModSpeed, m_hispeed * (float)m_currentTiming->GetBPM());
-					m_modSpeed = m_hispeed * (float)m_currentTiming->GetBPM();
-					m_playback.cModSpeed = m_modSpeed;
-				}
-			}
-		}
 
 		// Update song info display
 		ObjectState *const* lastObj = &m_beatmap->GetLinearObjects().back();
 
-
 		if (m_multiplayer != nullptr)
-			m_multiplayer->PerformScoreTick(m_scoring);
+			m_multiplayer->PerformScoreTick(m_scoring, m_lastMapTime);
 
 		//set lua
 		lua_getglobal(m_lua, "gameplay");
@@ -1154,6 +1200,26 @@ public:
 		lua_pushstring(m_lua, "comboState");
 		lua_pushnumber(m_lua, m_scoring.comboState);
 		lua_settable(m_lua, -3);
+
+		//hidden/sudden
+		lua_pushstring(m_lua, "hiddenFade");
+		lua_pushnumber(m_lua, m_track->hiddenFadewindow);
+		lua_settable(m_lua, -3);
+
+		lua_pushstring(m_lua, "hiddenCutoff");
+		lua_pushnumber(m_lua, m_track->hiddenCutoff);
+		lua_settable(m_lua, -3);
+
+		lua_pushstring(m_lua, "suddenFade");
+		lua_pushnumber(m_lua, m_track->suddenFadewindow);
+		lua_settable(m_lua, -3);
+
+		lua_pushstring(m_lua, "suddenCutoff");
+		lua_pushnumber(m_lua, m_track->suddenCutoff);
+		lua_settable(m_lua, -3);
+
+
+
 		//critLine
 		{
 			lua_getfield(m_lua, -1, "critLine");
@@ -1741,7 +1807,7 @@ public:
 	{
 		if (buttonCode == Input::Button::BT_S)
 		{
-			if (g_input.Are3BTsHeld())
+			if (g_input.Are3BTsHeld() && IsSuccessfullyInitialized())
 			{
 				ObjectState *const* lastObj = &m_beatmap->GetLinearObjects().back();
 				MapTime timePastEnd = m_lastMapTime - (*lastObj)->time;
