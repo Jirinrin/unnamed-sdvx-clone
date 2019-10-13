@@ -13,6 +13,7 @@ maps.db
 bin/Main.cfg
 bin/screenshots
 bin/log*
+bin/skins/skin.cfg
 
 # Intermediate Files
 x64
@@ -54,3 +55,6 @@ docs/build
 # Logs
 *.tlog
 *.log
+
+# User specific files
+GenerateWin64ProjectFiles.bat
