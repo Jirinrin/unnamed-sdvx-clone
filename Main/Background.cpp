@@ -16,7 +16,7 @@ public:
 	{
 		fullscreenMesh = MeshGenerators::Quad(g_gl, Vector2(-1.0f), Vector2(2.0f));
 		this->foreground = foreground;
-		CheckedLoad(m_lua = g_application->LoadScript("gameplay"));		
+		CheckedLoad(m_lua = g_application->LoadScript("gameplay"));
 		return true;
 	}
 	void UpdateRenderState(float deltaTime)
@@ -50,7 +50,7 @@ class TestBackground : public FullscreenBackground
 {
 	virtual bool Init(bool foreground) override
 	{
-		if(!FullscreenBackground::Init(foreground))
+		if (!FullscreenBackground::Init(foreground))
 			return false;
 
 		/// TODO: Handle invalid background configurations properly
@@ -116,8 +116,8 @@ class TestBackground : public FullscreenBackground
 		}
 
 		bool cleared = game->GetScoring().currentGauge >= clearBorder;
-		
-			if (cleared)
+
+		if (cleared)
 			clearTransition += deltaTime / tp.beatDuration * 1000;
 		else
 			clearTransition -= deltaTime / tp.beatDuration * 1000;
@@ -127,7 +127,7 @@ class TestBackground : public FullscreenBackground
 
 		Vector3 trackEndWorld = Vector3(0.0f, 25.0f, 0.0f);
 		Vector2i screenCenter = game->GetCamera().GetScreenCenter();
-		
+
 
 
 		float tilt = game->GetCamera().GetActualRoll() + game->GetCamera().GetBackgroundSpin();
@@ -197,7 +197,7 @@ Background* CreateBackground(class Game* game, bool foreground /* = false*/)
 {
 	Background* bg = new TestBackground();
 	bg->game = game;
-	if(!bg->Init(foreground))
+	if (!bg->Init(foreground))
 	{
 		delete bg;
 		return nullptr;
