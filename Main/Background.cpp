@@ -182,7 +182,7 @@ class TestBackground : public FullscreenBackground
 			}
 			else {
 				String bg = lua_tostring(m_lua, -1);
-				lua_pop(m_lua, 1);
+				lua_settop(m_lua, 0);
 				return bg;
 			}
 		}
