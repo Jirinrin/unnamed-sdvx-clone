@@ -220,7 +220,7 @@ class SelectionWheel
 	uint32 m_currentlySelectedLuaMapIndex = 0;
 
 	// previous lua map index 
-	int32 m_previousRandomMapId = -1;
+	std::stack<int32> m_previousRandomMapIds;
 
 	// Style to use for everything song select related
 	lua_State* m_lua = nullptr;
@@ -331,7 +331,9 @@ public:
 		auto& srcCollection = m_SourceCollection();
 		if (srcCollection.empty())
 			return;
-		m_previousRandomMapId = m_currentlySelectedId;
+		if (m_previousRandomMapIds.size() == 0 || (m_previousRandomMapIds.size() > 0 && m_previousRandomMapIds.top() != m_currentlySelectedId))
+			m_previousRandomMapIds.push(m_currentlySelectedId);
+
 		uint32 selection = Random::IntRange(0, (int32)srcCollection.size() - 1);
 		auto it = srcCollection.begin();
 		std::advance(it, selection);
@@ -339,10 +341,11 @@ public:
 	}
 	void SelectPreviousRandom()
 	{
-		if (m_SourceCollection().empty() || m_previousRandomMapId < 0)
+		if (m_SourceCollection().empty() || m_previousRandomMapIds.size() < 1 )
 			return;
 
-		SelectMap(m_previousRandomMapId);
+		SelectMap(m_previousRandomMapIds.top());
+		m_previousRandomMapIds.pop();
 	}
 	void SelectByMapId(uint32 id)
 	{
