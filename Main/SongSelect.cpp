@@ -95,6 +95,7 @@ public:
 	{
 		backspaceCount = 0;
 		input.clear();
+		OnTextChanged.Call(input);
 	}
 	void Tick()
 	{
@@ -1495,8 +1496,16 @@ public:
 			}
 			else if (key == SDLK_ESCAPE)
 			{
-				m_suspended = true;
-				g_application->RemoveTickable(this);
+				if (m_searchInput->active)
+				{
+					m_searchInput->Reset();
+					m_searchInput->SetActive(false);
+				}
+				else
+				{
+					m_suspended = true;
+					g_application->RemoveTickable(this);
+				}
 			}
 			else if (key == SDLK_TAB)
 			{
