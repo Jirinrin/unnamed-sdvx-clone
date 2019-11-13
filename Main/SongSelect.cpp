@@ -219,6 +219,9 @@ class SelectionWheel
 	// current lua map index
 	uint32 m_currentlySelectedLuaMapIndex = 0;
 
+	// previous lua map index 
+	int32 m_previousRandomMapId = -1;
+
 	// Style to use for everything song select related
 	lua_State* m_lua = nullptr;
 	String m_lastStatus = "";
@@ -325,12 +328,21 @@ public:
 	}
 	void SelectRandom()
 	{
-		if(m_SourceCollection().empty())
+		auto& srcCollection = m_SourceCollection();
+		if (srcCollection.empty())
 			return;
-		uint32 selection = Random::IntRange(0, (int32)m_SourceCollection().size() - 1);
-		auto it = m_SourceCollection().begin();
+		m_previousRandomMapId = m_currentlySelectedId;
+		uint32 selection = Random::IntRange(0, (int32)srcCollection.size() - 1);
+		auto it = srcCollection.begin();
 		std::advance(it, selection);
 		SelectMap(it->first);
+	}
+	void SelectPreviousRandom()
+	{
+		if (m_SourceCollection().empty() || m_previousRandomMapId < 0)
+			return;
+
+		SelectMap(m_previousRandomMapId);
 	}
 	void SelectByMapId(uint32 id)
 	{
@@ -1434,7 +1446,11 @@ public:
 			}
 			else if (key == SDLK_F2)
 			{
-				m_selectionWheel->SelectRandom();
+				bool undoRandom = (g_gameWindow->GetModifierKeys() & ModifierKeys::Shift) == ModifierKeys::Shift;
+				if (undoRandom)
+					m_selectionWheel->SelectPreviousRandom();
+				else
+					m_selectionWheel->SelectRandom();
 			}
 			else if (key == SDLK_F8) // start demo mode
 			{
