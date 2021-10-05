@@ -14,6 +14,8 @@ elseif(WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   message(FATAL_ERROR "Could not find vcpkg root")
 endif()
 
+find_package(ZLIB REQUIRED)
+
 
 project(FX VERSION 0.3.1)
 if(WIN32 AND ${CMAKE_VERSION} VERSION_GREATER "3.12")
